@@ -20,27 +20,44 @@ struct package
     char* hostname;
     int port;
     std::string line;
-    char symbol;
+    std::string code;
     std::vector<char> *message;
+    std::vector<int> positions;
 
     
 };
 
 
-
-std::vector<std::string> retrieve_lines(std::string entered, std::vector<package*> &data, int &count, int &msgsize)
+std::vector<int> retrieve_pos(std::string entered)
 {
-    std::ifstream file;
+    std::string curr;
+    std::stringstream ss(entered);
+    std::vector<int> returned;
+
+    while (getline(ss, curr, ' '))
+    {
+        returned.push_back(std::stoi(curr));
+    }
+    
+    return returned;
+}
+
+
+std::vector<std::string> retrieve_lines(std::vector<package*> &data, int &count, int &msgsize)
+{
     std::string line;
     std::vector<std::string> lines;
-    file.open(entered);
-    while (std::getline(file, line))
+    while (std::getline(std::cin, line))
     {
         package *entry = new package();
         data.push_back(entry);
         data.at(count)->line = line;
-        size_t pos = line.find_last_of(" ");
-        std::string last = line.substr(pos + 1);
+        size_t pos_code = line.find_first_of(" ");
+        data.at(count)->code = line.substr(0, pos_code);
+        size_t pos_freq = line.find_last_of(" ");
+        std::string last = line.substr(pos_freq + 1);
+        std::string pos_unparsed = line.substr(pos_code + 1);
+        data.at(count)->positions = retrieve_pos(pos_unparsed);
         int last_num = atoi(last.c_str());
         if (last_num > msgsize)
         {
@@ -49,8 +66,6 @@ std::vector<std::string> retrieve_lines(std::string entered, std::vector<package
         count++;
     }
 
-    file.close();
-
     return lines;
 }
 
@@ -58,8 +73,8 @@ void *child_thread(void *void_ptr)
 {
     package *pos_ptr = (package*)void_ptr;
     int sockfd, portno, n;
-    char sendmsg[pos_ptr->line.size() + 1];
-    std::strcpy(sendmsg, pos_ptr->line.c_str());
+    char sendmsg[pos_ptr->code.size() + 1];
+    std::strcpy(sendmsg, pos_ptr->code.c_str());
 
 
     struct sockaddr_in serv_addr;
@@ -86,7 +101,7 @@ void *child_thread(void *void_ptr)
         exit(1);
     }
 
-    int sizeofmessage = pos_ptr->line.size();
+    int sizeofmessage = pos_ptr->code.size();
     n = write(sockfd, &sizeofmessage, sizeof(int));
     if (n < 0)
     {
@@ -99,20 +114,17 @@ void *child_thread(void *void_ptr)
         std::cerr << "ERROR writing to socket";
         exit(1);
     }
-    int size;
-    n = read(sockfd, &size, sizeof(int));
-    if (n < 0)
-    {
-        std::cerr << "ERROR reading from socket";
-        exit(1);
-    }
-    char *buffer = new char[size + 1];
-    bzero(buffer, size + 1);
-    n = read(sockfd, buffer, size);
-    std::cout << buffer << std::endl;
-    delete [] buffer;
+    char recieved_symbol;
+    n = read(sockfd, &recieved_symbol, sizeof(char));
     close(sockfd);
-    
+
+
+    for (int i = 0; i < (int)pos_ptr->positions.size(); i++)
+    {
+        int position = pos_ptr->positions.at(i);
+        pos_ptr->message->at(position) = recieved_symbol;
+    }
+
     return nullptr;
 }
 
@@ -120,15 +132,11 @@ void *child_thread(void *void_ptr)
 
 int main(int argc, char *argv[])
 {
-    std::string entered;
-    std::cin >> entered;
     std::vector<std::string> inputed;
     std::vector<package*> datatobesent;
-    int threads = 0;
-    int msgsize = 0;
-    inputed = retrieve_lines(entered, datatobesent, threads, msgsize);
-    std::vector<char> finalmsg(msgsize);
-    std::cout << "Size of final msg: " << finalmsg.size() << std::endl;
+    int threads, msgsize = 0;
+    inputed = retrieve_lines(datatobesent, threads, msgsize);
+    std::vector<char> finalmsg(msgsize + 1);
     pthread_t *tid = new pthread_t[threads];
     
 
@@ -150,6 +158,16 @@ int main(int argc, char *argv[])
     {
         pthread_join(tid[i], NULL);
     }
+
+
+    std::cout << "Original message: ";
+
+    for (int i = 0; i < finalmsg.size(); i++)
+    {
+        std::cout <<  finalmsg.at(i);
+    }
+    
+    std::cout << std::endl;
 
     return 0;
 }

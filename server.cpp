@@ -153,19 +153,15 @@ Node* search(std::string code, Node* root, int count)
     return nullptr;
 }
 
-HFTree::HFTree(std::string name)
+HFTree::HFTree(std::string line)
 {
     std::vector<std::pair<char, int>> parsedinfo;
-    std::ifstream file;
-    std::string test;
-    file.open(name);
-    while(std::getline(file, test))
+    while(std::getline(std::cin, line))
     {
-        char symbol = test[0];
-        int freq = test[2]-'0';
+        char symbol = line[0];
+        int freq = line[2]-'0';
         parsedinfo.emplace_back(std::make_pair(symbol, freq));
     }
-    file.close();
 
     std::priority_queue<Node*, std::vector<Node*>, compare> pq;
 
@@ -226,13 +222,12 @@ void fireman(int)
 
 int main(int argc, char *argv[])
 {
-    std::string enteredone;
-    std::cin >> enteredone;
-    HFTree root = HFTree(enteredone);
+    std::string line;
+    HFTree root = HFTree(line);
     int sockfd, newsockfd, portno, clilen;
     struct sockaddr_in serv_addr, cli_addr;
     int n;
-    signal(SIGCHLD, fireman); 
+    signal(SIGCHLD, fireman);
     if (argc < 2)
     {
         std::cerr << "ERROR, no port provided\n";
@@ -273,6 +268,7 @@ int main(int argc, char *argv[])
                 std::cerr << "ERROR reading from socket";
                 exit(1);
             }
+            char code[size];
             char *buffer = new char[size+1];
             bzero(buffer, size+1);
             n = read(newsockfd, buffer, size);
@@ -281,17 +277,10 @@ int main(int argc, char *argv[])
                 std::cerr << "ERROR reading from socket";
                 exit(1);
             }
-            std::cout << "Size: " << size << std:: endl;
-            std::cout << "Name of the student that knows how to use sockets: " << buffer << std::endl;
-            char message[] = "You got a 100!";
-            int sMessage = strlen(message);
-            n = write(newsockfd, &sMessage, sizeof(int));
-            if (n < 0)
-            {
-                std::cerr << "ERROR writing to socket";
-                exit(1);
-            }
-            n = write(newsockfd, message, sMessage);
+            std::string recieved = buffer;
+            Node* searched_symbol = search(recieved, root.getRoot(), 0);
+            char symbol = searched_symbol->getChar();
+            n = write(newsockfd, &symbol, 1);
             if (n < 0)
             {
                 std::cerr << "ERROR writing to socket";
