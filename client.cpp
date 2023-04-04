@@ -1,5 +1,3 @@
-// Please note this is a C program
-// It compiles without warnings with gcc
 #include <unistd.h>
 #include <iostream>
 #include <string.h>
@@ -27,7 +25,7 @@ struct package
     
 };
 
-
+// Gets the positions for the symbol
 std::vector<int> retrieve_pos(std::string entered)
 {
     std::string curr;
@@ -42,7 +40,7 @@ std::vector<int> retrieve_pos(std::string entered)
     return returned;
 }
 
-
+// Reads the lines from the input, parses them, and adds them to the package struct.
 std::vector<std::string> retrieve_lines(std::vector<package*> &data, int &count, int &msgsize)
 {
     std::string line;
@@ -59,6 +57,7 @@ std::vector<std::string> retrieve_lines(std::vector<package*> &data, int &count,
         std::string pos_unparsed = line.substr(pos_code + 1);
         data.at(count)->positions = retrieve_pos(pos_unparsed);
         int last_num = atoi(last.c_str());
+        // Reads message size by getting a substring of the last number in each line, then compares it to find the biggest number
         if (last_num > msgsize)
         {
             msgsize = last_num;
@@ -73,6 +72,7 @@ void *child_thread(void *void_ptr)
 {
     package *pos_ptr = (package*)void_ptr;
     int sockfd, portno, n;
+    // Converts the code string to a c string that can be sent to the server
     char sendmsg[pos_ptr->code.size() + 1];
     std::strcpy(sendmsg, pos_ptr->code.c_str());
 
@@ -118,7 +118,7 @@ void *child_thread(void *void_ptr)
     n = read(sockfd, &recieved_symbol, sizeof(char));
     close(sockfd);
 
-
+    // Places the character in the positions that were stated in the compressed file
     for (int i = 0; i < (int)pos_ptr->positions.size(); i++)
     {
         int position = pos_ptr->positions.at(i);
@@ -134,7 +134,8 @@ int main(int argc, char *argv[])
 {
     std::vector<std::string> inputed;
     std::vector<package*> datatobesent;
-    int threads, msgsize = 0;
+    int threads = 0;
+    int msgsize = 1;
     inputed = retrieve_lines(datatobesent, threads, msgsize);
     std::vector<char> finalmsg(msgsize + 1);
     pthread_t *tid = new pthread_t[threads];

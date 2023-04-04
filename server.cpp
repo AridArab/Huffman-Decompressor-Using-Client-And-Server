@@ -1,9 +1,3 @@
-// A simple server in the internet domain using TCP
-// The port nu1mber is passed as an argument
-
-// Please note this is a C program
-// It compiles without warnings with gcc
-
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -153,6 +147,7 @@ Node* search(std::string code, Node* root, int count)
     return nullptr;
 }
 
+// Constructs and prints the huffman tree
 HFTree::HFTree(std::string line)
 {
     std::vector<std::pair<char, int>> parsedinfo;
@@ -194,6 +189,7 @@ HFTree::HFTree(std::string line)
     display(root, "");
 }
 
+// Prints the huffman tree
 void HFTree::display(Node *root, std::string str)
 {
     if (!root)
@@ -277,6 +273,7 @@ int main(int argc, char *argv[])
                 std::cerr << "ERROR reading from socket";
                 exit(1);
             }
+            // Decodes and retrieves the symbol
             std::string recieved = buffer;
             Node* searched_symbol = search(recieved, root.getRoot(), 0);
             char symbol = searched_symbol->getChar();
